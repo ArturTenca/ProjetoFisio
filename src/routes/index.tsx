@@ -1,0 +1,31 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { GuestRoute, ProtectedRoute } from '@/components/auth/ProtectedRoute'
+import { AppShell } from '@/components/layout/AppShell'
+import { LoginPage } from '@/pages/auth/LoginPage'
+import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { DashboardPage } from '@/pages/DashboardPage'
+import { PatientsPage } from '@/pages/PatientsPage'
+import { PatientPage } from '@/pages/PatientPage'
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route element={<GuestRoute />}>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/cadastro" element={<RegisterPage />} />
+      </Route>
+
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AppShell />}>
+          <Route path="/painel" element={<DashboardPage />} />
+          <Route path="/pacientes" element={<PatientsPage />} />
+          <Route path="/pacientes/:id" element={<PatientPage />} />
+          <Route path="*" element={<Navigate to="/pacientes" replace />} />
+        </Route>
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}

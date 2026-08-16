@@ -185,4 +185,48 @@
     animation: none;
     opacity: 1;
   }
+
+  .dash-in,
+  .dash-line,
+  .dash-ring {
+    animation: none !important;
+  }
+}
+
+.dash-card {
+  transition:
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease;
+}
+
+.dash-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(14, 39, 28, 0.1);
+}
+
+.dash-in {
+  animation: landing-fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.dash-line {
+  stroke-dasharray: 720;
+  stroke-dashoffset: 720;
+  animation: dash-draw 1.2s 0.4s ease forwards;
+}
+
+@keyframes dash-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.dash-ring {
+  transform-origin: 50% 50%;
+  animation: dash-spin 18s linear infinite;
+}
+
+@keyframes dash-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }

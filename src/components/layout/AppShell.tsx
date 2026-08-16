@@ -132,7 +132,7 @@ export function AppShell() {
         className="fixed inset-x-0 bottom-0 z-30 px-5 pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:hidden"
         aria-label="Navegação móvel"
       >
-        <div className="relative mx-auto flex max-w-xs items-center justify-around rounded-full bg-forest px-2 py-1 shadow-[0_10px_24px_rgba(14,39,28,0.28)]">
+        <div className="relative mx-auto flex max-w-md items-center justify-around rounded-full bg-forest px-1.5 py-1 shadow-[0_10px_24px_rgba(14,39,28,0.28)]">
           {mobileNavItems.map(({ label, path, icon: Icon }) => (
             <NavLink
               key={path}
@@ -140,7 +140,7 @@ export function AppShell() {
               end={path === '/painel'}
               className={({ isActive }) =>
                 [
-                  'flex min-w-[3.75rem] flex-col items-center gap-0.5 rounded-full px-2 py-0.5 text-[9px] font-medium transition-colors',
+                  'flex min-w-[3.25rem] flex-col items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-medium transition-colors',
                   isActive ? 'text-accent' : 'text-white/50',
                 ].join(' ')
               }

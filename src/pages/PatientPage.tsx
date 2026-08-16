@@ -9,6 +9,7 @@ import {
   Stethoscope,
   Target,
 } from 'lucide-react'
+import { PatientAvatar } from '@/components/ui/PatientAvatar'
 import { usePatient } from '@/hooks/usePatients'
 import { statusLabels, type PatientPainLog } from '@/types/patient'
 
@@ -101,11 +102,7 @@ export function PatientPage() {
       </Link>
 
       <div className="mt-5 flex min-w-0 items-start gap-4">
-        <div
-          className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-semibold text-white ${patient.photoTone}`}
-        >
-          {patient.initials}
-        </div>
+        <PatientAvatar name={patient.name} tone={patient.photoTone} initials={patient.initials} size="lg" />
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-semibold tracking-tight text-ink">{patient.name}</h1>

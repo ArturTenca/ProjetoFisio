@@ -2,11 +2,12 @@ interface PageHeaderProps {
   title: string
   description: string
   action?: React.ReactNode
+  className?: string
 }
 
-export function PageHeader({ title, description, action }: PageHeaderProps) {
+export function PageHeader({ title, description, action, className = '' }: PageHeaderProps) {
   return (
-    <div className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+    <div className={['mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end', className].join(' ')}>
       <div>
         <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-accent">Fisio</p>
         <h1 className="text-3xl font-semibold tracking-tight text-ink">{title}</h1>

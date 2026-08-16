@@ -6,6 +6,8 @@ import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { PatientsPage } from '@/pages/PatientsPage'
 import { PatientPage } from '@/pages/PatientPage'
+import { CalendarPage } from '@/pages/CalendarPage'
+import { KanbanPage } from '@/pages/KanbanPage'
 
 export function AppRoutes() {
   return (
@@ -21,6 +23,9 @@ export function AppRoutes() {
           <Route path="/painel" element={<DashboardPage />} />
           <Route path="/pacientes" element={<PatientsPage />} />
           <Route path="/pacientes/:id" element={<PatientPage />} />
+          <Route path="/agenda" element={<CalendarPage />} />
+          <Route path="/quadro" element={<KanbanPage />} />
+          <Route path="/kanban" element={<Navigate to="/quadro" replace />} />
           <Route path="*" element={<Navigate to="/pacientes" replace />} />
         </Route>
       </Route>

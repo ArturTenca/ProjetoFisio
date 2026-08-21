@@ -1,19 +1,28 @@
 import { supabase } from '@/lib/supabase/client'
 import type {
   AlertTone,
+  CreatePatientInput,
   Patient,
+  PatientListItem,
   PatientStatus,
   SessionStatus,
+  UpdatePatientInput,
 } from '@/types/patient'
 
 interface PatientRow {
   id: string
   full_name: string
   code: string
-  birth_date: string
+  birth_date: string | null
   phone: string | null
   email: string | null
   status: PatientStatus
+  profession: string | null
+  emergency_name: string | null
+  emergency_phone: string | null
+  emergency_relation: string | null
+  admin_notes: string | null
+  referral_source: string | null
   treatment_started_on: string | null
   sessions_done: number
   sessions_planned: number
@@ -30,6 +39,18 @@ interface PatientRow {
   last_conducts: string | null
   next_session_plan: string | null
   photo_tone: string
+}
+
+interface ListPatientRow {
+  id: string
+  full_name: string
+  code: string
+  phone: string | null
+  status: PatientStatus
+  photo_tone: string
+  program_name: string | null
+  sessions_done: number
+  sessions_planned: number
 }
 
 interface GoalRow {
@@ -66,11 +87,18 @@ interface AlertRow {
   tone: AlertTone
 }
 
+const DETAIL_COLUMNS =
+  'id, full_name, code, birth_date, phone, email, status, profession, emergency_name, emergency_phone, emergency_relation, admin_notes, referral_source, treatment_started_on, sessions_done, sessions_planned, frequency, therapist_name, program_name, program_progress, complaint, diagnosis, current_eva, last_visit_on, ai_summary, evolution_summary, last_conducts, next_session_plan, photo_tone'
+
+const LIST_COLUMNS =
+  'id, full_name, code, phone, status, photo_tone, program_name, sessions_done, sessions_planned'
+
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(error.message)
 }
 
-function ageFrom(isoDate: string) {
+function ageFrom(isoDate: string | null) {
+  if (!isoDate) return null
   const birth = new Date(`${isoDate}T00:00:00`)
   const today = new Date()
   let age = today.getFullYear() - birth.getFullYear()
@@ -103,6 +131,20 @@ function formatDateTime(iso: string | null) {
   }
 }
 
+function emptyToNull(value?: string) {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : null
+}
+
+function generatePatientCode() {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let suffix = ''
+  for (let i = 0; i < 6; i += 1) {
+    suffix += alphabet[Math.floor(Math.random() * alphabet.length)]
+  }
+  return `PAC-${suffix}`
+}
+
 function mapSession(row: SessionRow): Patient['nextSession'] {
   const { dateLabel, timeLabel } = formatDateTime(row.scheduled_at)
   return {
@@ -117,6 +159,29 @@ function mapSession(row: SessionRow): Patient['nextSession'] {
   }
 }
 
+function pickUpcoming(sessions: SessionRow[]) {
+  return sessions
+    .filter((session) => session.status === 'agendada' || session.status === 'confirmada')
+    .sort((a, b) => (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''))[0]
+}
+
+function mapListItem(row: ListPatientRow, sessions: SessionRow[]): PatientListItem {
+  const upcoming = pickUpcoming(sessions)
+  return {
+    id: row.id,
+    name: row.full_name,
+    initials: initialsFrom(row.full_name),
+    photoTone: row.photo_tone || 'bg-forest',
+    status: row.status,
+    code: row.code,
+    phone: row.phone ?? '—',
+    program: row.program_name ?? '—',
+    sessionsDone: row.sessions_done,
+    sessionsTotal: row.sessions_planned,
+    nextSession: upcoming ? mapSession(upcoming) : null,
+  }
+}
+
 function mapPatient(
   row: PatientRow,
   extras: {
@@ -127,9 +192,7 @@ function mapPatient(
     alerts?: AlertRow[]
   } = {},
 ): Patient {
-  const upcoming = (extras.sessions ?? [])
-    .filter((session) => session.status === 'agendada' || session.status === 'confirmada')
-    .sort((a, b) => (a.scheduled_at ?? '').localeCompare(b.scheduled_at ?? ''))[0]
+  const upcoming = pickUpcoming(extras.sessions ?? [])
 
   return {
     id: row.id,
@@ -140,8 +203,15 @@ function mapPatient(
     code: row.code,
     age: ageFrom(row.birth_date),
     birthDate: formatDate(row.birth_date),
+    birthDateRaw: row.birth_date,
     phone: row.phone ?? '—',
     email: row.email ?? '—',
+    profession: row.profession ?? '—',
+    emergencyName: row.emergency_name ?? '—',
+    emergencyPhone: row.emergency_phone ?? '—',
+    emergencyRelation: row.emergency_relation ?? '—',
+    adminNotes: row.admin_notes ?? '',
+    referralSource: row.referral_source ?? '—',
     startDate: formatDate(row.treatment_started_on),
     sessionsDone: row.sessions_done,
     sessionsTotal: row.sessions_planned,
@@ -181,17 +251,15 @@ function mapPatient(
   }
 }
 
-export async function listPatients(): Promise<Patient[]> {
+export async function listPatients(): Promise<PatientListItem[]> {
   const { data, error } = await supabase
     .from('patients')
-    .select(
-      'id, full_name, code, birth_date, phone, email, status, treatment_started_on, sessions_done, sessions_planned, frequency, therapist_name, program_name, program_progress, complaint, diagnosis, current_eva, last_visit_on, ai_summary, evolution_summary, last_conducts, next_session_plan, photo_tone',
-    )
+    .select(LIST_COLUMNS)
     .order('full_name', { ascending: true })
 
   throwIfError(error)
 
-  const rows = (data ?? []) as PatientRow[]
+  const rows = (data ?? []) as ListPatientRow[]
   if (rows.length === 0) return []
 
   const ids = rows.map((row) => row.id)
@@ -209,15 +277,13 @@ export async function listPatients(): Promise<Patient[]> {
     sessionsByPatient.set(session.patient_id, list)
   }
 
-  return rows.map((row) => mapPatient(row, { sessions: sessionsByPatient.get(row.id) ?? [] }))
+  return rows.map((row) => mapListItem(row, sessionsByPatient.get(row.id) ?? []))
 }
 
 export async function getPatientById(id: string): Promise<Patient | null> {
   const { data, error } = await supabase
     .from('patients')
-    .select(
-      'id, full_name, code, birth_date, phone, email, status, treatment_started_on, sessions_done, sessions_planned, frequency, therapist_name, program_name, program_progress, complaint, diagnosis, current_eva, last_visit_on, ai_summary, evolution_summary, last_conducts, next_session_plan, photo_tone',
-    )
+    .select(DETAIL_COLUMNS)
     .eq('id', id)
     .maybeSingle()
 
@@ -234,7 +300,11 @@ export async function getPatientById(id: string): Promise<Patient | null> {
       .from('patient_sessions')
       .select('id, scheduled_at, session_type, place, status, notes')
       .eq('patient_id', id),
-    supabase.from('patient_alerts').select('id, message, tone').eq('patient_id', id).order('created_at', { ascending: false }),
+    supabase
+      .from('patient_alerts')
+      .select('id, message, tone')
+      .eq('patient_id', id)
+      .order('created_at', { ascending: false }),
   ])
 
   throwIfError(goals.error)
@@ -250,4 +320,49 @@ export async function getPatientById(id: string): Promise<Patient | null> {
     sessions: (sessions.data ?? []) as SessionRow[],
     alerts: (alerts.data ?? []) as AlertRow[],
   })
+}
+
+export async function createPatient(input: CreatePatientInput): Promise<{ id: string }> {
+  const payload = {
+    full_name: input.fullName.trim(),
+    code: generatePatientCode(),
+    birth_date: emptyToNull(input.birthDate),
+    phone: emptyToNull(input.phone),
+    email: emptyToNull(input.email)?.toLowerCase() ?? null,
+    profession: emptyToNull(input.profession),
+    emergency_name: emptyToNull(input.emergencyName),
+    emergency_phone: emptyToNull(input.emergencyPhone),
+    emergency_relation: emptyToNull(input.emergencyRelation),
+    admin_notes: emptyToNull(input.adminNotes),
+    referral_source: emptyToNull(input.referralSource),
+    therapist_name: emptyToNull(input.therapistName),
+    status: 'avaliacao' as const,
+  }
+
+  const { data, error } = await supabase.from('patients').insert(payload).select('id').single()
+  throwIfError(error)
+  if (!data?.id) throw new Error('Paciente criado sem identificador')
+  return { id: data.id as string }
+}
+
+export async function updatePatient(id: string, input: UpdatePatientInput): Promise<void> {
+  const payload: Record<string, string | null> = {
+    full_name: input.fullName.trim(),
+    birth_date: emptyToNull(input.birthDate),
+    phone: emptyToNull(input.phone),
+    email: emptyToNull(input.email)?.toLowerCase() ?? null,
+    profession: emptyToNull(input.profession),
+    emergency_name: emptyToNull(input.emergencyName),
+    emergency_phone: emptyToNull(input.emergencyPhone),
+    emergency_relation: emptyToNull(input.emergencyRelation),
+    admin_notes: emptyToNull(input.adminNotes),
+    referral_source: emptyToNull(input.referralSource),
+    therapist_name: emptyToNull(input.therapistName),
+  }
+
+  if (input.status) payload.status = input.status
+  if (input.code?.trim()) payload.code = input.code.trim()
+
+  const { error } = await supabase.from('patients').update(payload).eq('id', id)
+  throwIfError(error)
 }

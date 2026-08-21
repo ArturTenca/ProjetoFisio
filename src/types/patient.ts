@@ -44,6 +44,21 @@ export interface PatientAlert {
   tone: AlertTone
 }
 
+/** Lista enxuta — sem histórico clínico completo (LGPD + performance). */
+export interface PatientListItem {
+  id: string
+  name: string
+  initials: string
+  photoTone: string
+  status: PatientStatus
+  code: string
+  phone: string
+  program: string
+  sessionsDone: number
+  sessionsTotal: number
+  nextSession: PatientSession | null
+}
+
 export interface Patient {
   id: string
   name: string
@@ -51,10 +66,17 @@ export interface Patient {
   photoTone: string
   status: PatientStatus
   code: string
-  age: number
+  age: number | null
   birthDate: string
+  birthDateRaw: string | null
   phone: string
   email: string
+  profession: string
+  emergencyName: string
+  emergencyPhone: string
+  emergencyRelation: string
+  adminNotes: string
+  referralSource: string
   startDate: string
   sessionsDone: number
   sessionsTotal: number
@@ -75,4 +97,23 @@ export interface Patient {
   painSeries: PatientPainLog[]
   alerts: PatientAlert[]
   nextSession: PatientSession | null
+}
+
+export interface CreatePatientInput {
+  fullName: string
+  phone?: string
+  email?: string
+  birthDate?: string
+  profession?: string
+  emergencyName?: string
+  emergencyPhone?: string
+  emergencyRelation?: string
+  adminNotes?: string
+  referralSource?: string
+  therapistName?: string
+}
+
+export interface UpdatePatientInput extends CreatePatientInput {
+  status?: PatientStatus
+  code?: string
 }

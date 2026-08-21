@@ -1,12 +1,61 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Plus } from 'lucide-react'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { PatientAvatar } from '@/components/ui/PatientAvatar'
-import { usePatients } from '@/hooks/usePatients'
+import { Button } from '@/components/ui/Button'
+import { Modal } from '@/components/ui/Modal'
+import { Input } from '@/components/ui/Input'
+import { useCreatePatient, usePatients } from '@/hooks/usePatients'
+import { createPatientSchema, type CreatePatientFormData } from '@/schemas/patient.schema'
 import { statusLabels } from '@/types/patient'
 
 export function PatientsPage() {
   const { data: patients = [], isLoading, isError } = usePatients()
+  const create = useCreatePatient()
   const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+
+  const form = useForm<CreatePatientFormData>({
+    resolver: zodResolver(createPatientSchema),
+    defaultValues: {
+      fullName: '',
+      phone: '',
+      email: '',
+      birthDate: '',
+      profession: '',
+      emergencyName: '',
+      emergencyPhone: '',
+      emergencyRelation: '',
+      adminNotes: '',
+      referralSource: '',
+      therapistName: '',
+    },
+  })
+
+  function openCreate() {
+    form.reset()
+    setOpen(true)
+  }
+
+  function onSubmit(values: CreatePatientFormData) {
+    create.mutate(
+      {
+        fullName: values.fullName,
+        phone: values.phone,
+        email: values.email,
+        birthDate: values.birthDate,
+      },
+      {
+        onSuccess: ({ id }) => {
+          setOpen(false)
+          navigate(`/pacientes/${id}`)
+        },
+      },
+    )
+  }
 
   return (
     <section className="mx-auto max-w-6xl">
@@ -14,10 +63,16 @@ export function PatientsPage() {
         className="dash-in"
         title="Pacientes"
         description="Cadastros da clínica. Toque no card ou na linha para abrir a ficha."
+        action={
+          <Button onClick={openCreate}>
+            <Plus size={16} />
+            Novo paciente
+          </Button>
+        }
       />
 
       {isLoading ? (
-        <div className="flex min-h-48 items-center justify-center rounded-2xl border border-line bg-surface dash-in">
+        <div className="dash-in flex min-h-48 items-center justify-center rounded-2xl border border-line bg-surface">
           <div className="h-7 w-7 animate-spin rounded-full border-2 border-forest border-t-transparent" />
         </div>
       ) : null}
@@ -29,8 +84,12 @@ export function PatientsPage() {
       ) : null}
 
       {!isLoading && !isError && patients.length === 0 ? (
-        <article className="dash-in rounded-2xl border border-line bg-surface px-6 py-10 text-center text-sm text-muted">
-          Nenhum paciente cadastrado ainda.
+        <article className="dash-in rounded-2xl border border-line bg-surface px-6 py-10 text-center">
+          <p className="text-sm text-muted">Nenhum paciente cadastrado ainda.</p>
+          <Button className="mt-4" onClick={openCreate}>
+            <Plus size={16} />
+            Cadastrar primeiro paciente
+          </Button>
         </article>
       ) : null}
 
@@ -55,7 +114,10 @@ export function PatientsPage() {
             ))}
           </div>
 
-          <div className="dash-in hidden overflow-hidden rounded-2xl border border-line bg-surface md:block" style={{ animationDelay: '80ms' }}>
+          <div
+            className="dash-in hidden overflow-hidden rounded-2xl border border-line bg-surface md:block"
+            style={{ animationDelay: '80ms' }}
+          >
             <table className="min-w-full text-left text-sm">
               <thead className="border-b border-line bg-canvas text-[11px] uppercase tracking-wide text-muted">
                 <tr>
@@ -110,6 +172,39 @@ export function PatientsPage() {
           </div>
         </>
       ) : null}
+
+      <Modal
+        open={open}
+        title="Novo paciente"
+        description="Cadastro rápido. Só o nome é obrigatório — o restante pode ser completado na ficha."
+        onClose={() => setOpen(false)}
+      >
+        <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+          <Input
+            label="Nome completo"
+            autoFocus
+            error={form.formState.errors.fullName?.message}
+            {...form.register('fullName')}
+          />
+          <Input
+            label="Telefone"
+            type="tel"
+            hint="Opcional"
+            error={form.formState.errors.phone?.message}
+            {...form.register('phone')}
+          />
+          <Input
+            label="Data de nascimento"
+            type="date"
+            hint="Opcional"
+            error={form.formState.errors.birthDate?.message}
+            {...form.register('birthDate')}
+          />
+          <Button type="submit" fullWidth isLoading={create.isPending}>
+            Criar ficha
+          </Button>
+        </form>
+      </Modal>
     </section>
   )
 }
